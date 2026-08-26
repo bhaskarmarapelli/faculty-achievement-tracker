@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Faculty Achievement Register</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React, ReactDOM, and Babel are bundled locally in js/vendor/ so this
+       runs fully offline with no CDN dependency (good for campus/office
+       networks that block unpkg.com or other CDNs). -->
+  <script src="js/vendor/react.development.js"></script>
+  <script src="js/vendor/react-dom.development.js"></script>
+  <script src="js/vendor/babel.min.js"></script>
+  <script src="js/vendor/firebase-app-compat.js"></script>
+  <script src="js/vendor/firebase-auth-compat.js"></script>
+  <script src="js/vendor/firebase-firestore-compat.js"></script>
+
+  <!-- Your Firebase project's keys — see README.md to fill this in. -->
+  <script src="js/firebase-config.js"></script>
+
+  <!-- App code: fetched and transformed explicitly (rather than relying on
+       Babel's automatic <script type="text/babel"> scanning) so we can force
+       the "classic" JSX runtime. Newer Babel defaults to the "automatic"
+       runtime, which injects an ES `import` statement — that fails here
+       because this is a plain classic script, not type="module". Classic
+       runtime instead compiles JSX to React.createElement(...) calls using
+       the React global already loaded above. -->
+  <script>
+    fetch("js/app.js")
+      .then((res) => {
+        if (!res.ok) throw new Error("HTTP " + res.status + " loading js/app.js");
+        return res.text();
+      })
+      .then((code) => {
+        const output = Babel.transform(code, {
+          presets: [["react", { runtime: "classic" }]],
+          filename: "app.js",
+        }).code;
+        const script = document.createElement("script");
+        script.text = output;
+        document.body.appendChild(script);
+      })
+      .catch((err) => {
+        document.getElementById("root").innerHTML =
+          '<pre style="padding:24px;color:#B3452C;font-family:monospace;white-space:pre-wrap;">Failed to load app.js:\n' +
+          String(err) +
+          "</pre>";
+        console.error(err);
+      });
+  </script>
+</body>
+</html>

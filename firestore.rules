@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// Paste this into: Firebase Console → your project → Firestore Database →
+// Rules tab → replace everything → Publish.
+//
+// What this does:
+//   - Anyone (faculty, students, no login needed) can CREATE a submission.
+//   - Nobody can read the list of submissions unless they are signed in
+//     (i.e. only the admin account you create can see/export/delete data).
+//   - Signed-in users can update/delete records (only you'll have an
+//     account, so this effectively means "only admin").
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /submissions/{docId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+  }
+}
