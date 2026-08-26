@@ -473,7 +473,6 @@ function App() {
             <h1 className="title">Achievement Register</h1>
           </div>
           <nav className="nav">
-            <button onClick={() => setView("submit")} className={"nav-btn" + (view === "submit" ? " active" : "")}>Faculty / Students</button>
             <button onClick={() => setView("admin")} className={"nav-btn" + (view === "admin" ? " active" : "")}>
               <Icon.lock /> Admin
             </button>
