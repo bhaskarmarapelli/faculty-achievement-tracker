@@ -1,12 +1,13 @@
 const { useState, useEffect, useCallback } = React;
 
-const CATEGORIES = ["Academic", "Co-Curricular", "Extra-Curricular", "Other"];
+const CATEGORIES = ["Academic", "Co-Curricular", "Extra-Curricular", "Research", "Other"];
 const ROLES = ["Faculty", "Student"];
 
 const CATEGORY_STYLES = {
   Academic: { bg: "#EAF1EE", text: "#1F5D45", dot: "#2E8B57" },
   "Co-Curricular": { bg: "#EFF0F7", text: "#3D3A78", dot: "#5B57A6" },
   "Extra-Curricular": { bg: "#FBF0E6", text: "#8A5324", dot: "#C97A2C" },
+  Research: { bg: "#E8F0F4", text: "#28566B", dot: "#3E809B" },
   Other: { bg: "#F1F1EE", text: "#55534A", dot: "#8A8778" },
 };
 const ROLE_STYLES = {
@@ -16,6 +17,7 @@ const ROLE_STYLES = {
 
 const emptyForm = {
   role: "Faculty", name: "", idNumber: "", category: "", details: "", date: "", proofLink: "",
+  researchType: "", paperDescription: "", scopusIndexed: "", quartile: "",
 };
 
 // ---- tiny inline icon set (no external icon package needed) ----
@@ -88,6 +90,12 @@ function SubmitForm({ db, showToast }) {
     if (!form.category) e.category = "Select a category.";
     if (!form.details.trim()) e.details = "Please describe the achievement.";
     if (!form.date) e.date = "Date is required.";
+    if (form.category === "Research") {
+      if (!form.researchType) e.researchType = "Select conference or journal.";
+      if (!form.paperDescription.trim()) e.paperDescription = "Paper description is required.";
+      if (!form.scopusIndexed) e.scopusIndexed = "Select whether the paper is Scopus indexed.";
+      if (!form.quartile) e.quartile = "Select a quartile.";
+    }
     if (!form.proofLink.trim()) {
       e.proofLink = "A Google Drive or OneDrive link is required.";
     } else if (!/^https?:\/\//i.test(form.proofLink.trim())) {
@@ -111,6 +119,10 @@ function SubmitForm({ db, showToast }) {
         details: form.details.trim(),
         date: form.date,
         proofLink: form.proofLink.trim(),
+        researchType: form.category === "Research" ? form.researchType : "",
+        paperDescription: form.category === "Research" ? form.paperDescription.trim() : "",
+        scopusIndexed: form.category === "Research" ? form.scopusIndexed : "",
+        quartile: form.category === "Research" ? form.quartile : "",
         submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
       setForm({ ...emptyForm, role: form.role });
@@ -167,6 +179,44 @@ function SubmitForm({ db, showToast }) {
               onChange={(e) => setForm({ ...form, date: e.target.value })} max={new Date().toISOString().slice(0, 10)} />
           </Field>
         </div>
+
+        {form.category === "Research" && (
+          <div className="research-section">
+            <h3>Research Contribution</h3>
+            <div className="grid-2">
+              <Field label="Research Type" required error={errors.researchType}>
+                <select className={"field-input" + (errors.researchType ? " error" : "")} value={form.researchType}
+                  onChange={(e) => setForm({ ...form, researchType: e.target.value })}>
+                  <option value="">Select type</option>
+                  <option value="Conference">Conference</option>
+                  <option value="Journal">Journal</option>
+                </select>
+              </Field>
+              <Field label="Scopus Indexed" required error={errors.scopusIndexed}>
+                <select className={"field-input" + (errors.scopusIndexed ? " error" : "")} value={form.scopusIndexed}
+                  onChange={(e) => setForm({ ...form, scopusIndexed: e.target.value })}>
+                  <option value="">Select status</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </Field>
+            </div>
+            <div className="grid-2">
+              <Field label="Quartile" required error={errors.quartile}>
+                <select className={"field-input" + (errors.quartile ? " error" : "")} value={form.quartile}
+                  onChange={(e) => setForm({ ...form, quartile: e.target.value })}>
+                  <option value="">Select quartile</option>
+                  {['Q1', 'Q2', 'Q3', 'Q4', 'Not applicable'].map((q) => <option key={q} value={q}>{q}</option>)}
+                </select>
+              </Field>
+            </div>
+            <Field label="Paper Description" required error={errors.paperDescription}>
+              <textarea className={"field-input" + (errors.paperDescription ? " error" : "")} value={form.paperDescription}
+                onChange={(e) => setForm({ ...form, paperDescription: e.target.value })}
+                placeholder="Enter the paper title, authors, journal or conference, and publication details." />
+            </Field>
+          </div>
+        )}
 
         <Field label="Achievement Details" required error={errors.details}>
           <textarea className={"field-input" + (errors.details ? " error" : "")} value={form.details}
@@ -287,8 +337,8 @@ function AdminDashboard({ db, auth, user, showToast }) {
     if (!records || records.length === 0) { showToast("No records to export yet.", "error"); return; }
     downloadCSV(
       `achievements-detailed-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Role", "Name", "ID", "Category", "Details", "Date", "Proof Link"],
-      records.map((r) => [r.role, r.name, r.idNumber, r.category, r.details, formatDate(r.date), r.proofLink || ""])
+      ["Role", "Name", "ID", "Category", "Details", "Date", "Proof Link", "Research Type", "Paper Description", "Scopus Indexed", "Quartile"],
+      records.map((r) => [r.role, r.name, r.idNumber, r.category, r.details, formatDate(r.date), r.proofLink || "", r.researchType || "", r.paperDescription || "", r.scopusIndexed || "", r.quartile || ""])
     );
   };
 
@@ -296,7 +346,7 @@ function AdminDashboard({ db, auth, user, showToast }) {
     if (summaryMonths.length === 0) { showToast("No records to summarize yet.", "error"); return; }
     const summaryHeaders = [
       "Month", "Row Type", "Total", ...CATEGORIES, "Faculty", "Student",
-      "Role", "Name", "ID", "Category", "Details", "Date", "Proof Link",
+      "Role", "Name", "ID", "Category", "Details", "Date", "Proof Link", "Research Type", "Paper Description", "Scopus Indexed", "Quartile",
     ];
     const summaryRows = [];
     summaryMonths.forEach((key) => {
@@ -305,12 +355,12 @@ function AdminDashboard({ db, auth, user, showToast }) {
         monthLabel(key), "Monthly count", month.total,
         ...CATEGORIES.map((c) => month.byCategory[c] || 0),
         month.byRole.Faculty || 0, month.byRole.Student || 0,
-        "", "", "", "", "", "", "",
+        ...Array(11).fill(""),
       ]);
       month.records.forEach((r) => {
         summaryRows.push([
           monthLabel(key), "Achievement detail", "", "", "", "", "", "", "",
-          r.role, r.name, r.idNumber, r.category, r.details, formatDate(r.date), r.proofLink || "",
+          r.role, r.name, r.idNumber, r.category, r.details, formatDate(r.date), r.proofLink || "", r.researchType || "", r.paperDescription || "", r.scopusIndexed || "", r.quartile || "",
         ]);
       });
     });
@@ -438,6 +488,10 @@ function AdminDashboard({ db, auth, user, showToast }) {
                       <th>Details</th>
                       <th>Date</th>
                       <th>Proof</th>
+                      <th>Research Type</th>
+                      <th>Paper Description</th>
+                      <th>Scopus Indexed</th>
+                      <th>Quartile</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -449,7 +503,7 @@ function AdminDashboard({ db, auth, user, showToast }) {
                           {CATEGORIES.map((c) => <td key={c}>{summary[key].byCategory[c] || 0}</td>)}
                           <td>{summary[key].byRole.Faculty || 0}</td>
                           <td>{summary[key].byRole.Student || 0}</td>
-                          <td colSpan="7" style={{ color: "#8A8778", fontStyle: "italic" }}>Monthly count</td>
+                          <td colSpan="11" style={{ color: "#8A8778", fontStyle: "italic" }}>Monthly count</td>
                         </tr>
                         {summary[key].records.map((r) => {
                           const cat = CATEGORY_STYLES[r.category] || CATEGORY_STYLES.Other;
@@ -472,6 +526,10 @@ function AdminDashboard({ db, auth, user, showToast }) {
                                   <a href={r.proofLink} target="_blank" rel="noopener noreferrer" className="proof-link"><Icon.link /> Open</a>
                                 ) : <span style={{ color: "#C7C4B6" }}>—</span>}
                               </td>
+                              <td>{r.researchType || "—"}</td>
+                              <td><span className="td-details" title={r.paperDescription}>{r.paperDescription || "—"}</span></td>
+                              <td>{r.scopusIndexed || "—"}</td>
+                              <td>{r.quartile || "—"}</td>
                             </tr>
                           );
                         })}

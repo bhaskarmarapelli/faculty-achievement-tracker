@@ -119,6 +119,13 @@ button:focus-visible { outline: 2px solid #2E5C4E; outline-offset: 2px; }
 .field-input.error { border-color: #C6604A; }
 textarea.field-input { min-height: 110px; resize: vertical; }
 
+.research-section {
+  border-top: 1px solid #E2DFD1;
+  margin-top: 8px;
+  padding-top: 18px;
+}
+.research-section h3 { margin: 0 0 14px; font-size: 16px; font-weight: 600; }
+
 .error-text {
   font-family: 'Helvetica Neue', Arial, sans-serif;
   font-size: 12px;
