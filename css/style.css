@@ -84,7 +84,14 @@ button:focus-visible { outline: 2px solid #2E5C4E; outline-offset: 2px; }
   margin-bottom: 22px;
   line-height: 1.5;
 }
-.required { color: #B3452C; }
+.required {
+  display: inline-block;
+  margin-left: 2px;
+  color: #B3452C;
+  font-size: 14px;
+  font-weight: 700;
+  visibility: visible;
+}
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }

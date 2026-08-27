@@ -88,7 +88,9 @@ function SubmitForm({ db, showToast }) {
     if (!form.category) e.category = "Select a category.";
     if (!form.details.trim()) e.details = "Please describe the achievement.";
     if (!form.date) e.date = "Date is required.";
-    if (form.proofLink.trim() && !/^https?:\/\//i.test(form.proofLink.trim())) {
+    if (!form.proofLink.trim()) {
+      e.proofLink = "A Google Drive or OneDrive link is required.";
+    } else if (!/^https?:\/\//i.test(form.proofLink.trim())) {
       e.proofLink = "Link should start with http:// or https://";
     }
     setErrors(e);
@@ -172,10 +174,10 @@ function SubmitForm({ db, showToast }) {
             placeholder="Describe the achievement — award, publication, event organized, competition result, etc." />
         </Field>
 
-        <Field label="Proof Link (optional)" error={errors.proofLink}>
+        <Field label="Proof Link" required error={errors.proofLink}>
           <input className={"field-input" + (errors.proofLink ? " error" : "")} value={form.proofLink}
             onChange={(e) => setForm({ ...form, proofLink: e.target.value })}
-            placeholder="Google Drive / OneDrive link to certificate or photo" />
+            placeholder="Google Drive / OneDrive link to certificate or photo" required />
         </Field>
 
         <button type="submit" disabled={saving} className="submit-btn">
@@ -273,10 +275,11 @@ function AdminDashboard({ db, auth, user, showToast }) {
   const summary = {};
   (records || []).forEach((r) => {
     const key = monthKey(r.date);
-    if (!summary[key]) summary[key] = { total: 0, byCategory: {}, byRole: { Faculty: 0, Student: 0 } };
+    if (!summary[key]) summary[key] = { total: 0, byCategory: {}, byRole: { Faculty: 0, Student: 0 }, records: [] };
     summary[key].total += 1;
     summary[key].byCategory[r.category] = (summary[key].byCategory[r.category] || 0) + 1;
     summary[key].byRole[r.role] = (summary[key].byRole[r.role] || 0) + 1;
+    summary[key].records.push(r);
   });
   const summaryMonths = Object.keys(summary).sort().reverse();
 
@@ -291,16 +294,30 @@ function AdminDashboard({ db, auth, user, showToast }) {
 
   const exportSummaryCSV = () => {
     if (summaryMonths.length === 0) { showToast("No records to summarize yet.", "error"); return; }
+    const summaryHeaders = [
+      "Month", "Row Type", "Total", ...CATEGORIES, "Faculty", "Student",
+      "Role", "Name", "ID", "Category", "Details", "Date", "Proof Link",
+    ];
+    const summaryRows = [];
+    summaryMonths.forEach((key) => {
+      const month = summary[key];
+      summaryRows.push([
+        monthLabel(key), "Monthly count", month.total,
+        ...CATEGORIES.map((c) => month.byCategory[c] || 0),
+        month.byRole.Faculty || 0, month.byRole.Student || 0,
+        "", "", "", "", "", "", "",
+      ]);
+      month.records.forEach((r) => {
+        summaryRows.push([
+          monthLabel(key), "Achievement detail", "", "", "", "", "", "", "",
+          r.role, r.name, r.idNumber, r.category, r.details, formatDate(r.date), r.proofLink || "",
+        ]);
+      });
+    });
     downloadCSV(
       `achievements-monthly-summary-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Month", "Total", ...CATEGORIES, "Faculty", "Student"],
-      summaryMonths.map((key) => [
-        monthLabel(key),
-        summary[key].total,
-        ...CATEGORIES.map((c) => summary[key].byCategory[c] || 0),
-        summary[key].byRole.Faculty || 0,
-        summary[key].byRole.Student || 0,
-      ])
+      summaryHeaders,
+      summaryRows
     );
   };
 
@@ -414,17 +431,51 @@ function AdminDashboard({ db, auth, user, showToast }) {
                       {CATEGORIES.map((c) => <th key={c}>{c}</th>)}
                       <th>Faculty</th>
                       <th>Student</th>
+                      <th>Role</th>
+                      <th>Name</th>
+                      <th>ID</th>
+                      <th>Category</th>
+                      <th>Details</th>
+                      <th>Date</th>
+                      <th>Proof</th>
                     </tr>
                   </thead>
                   <tbody>
                     {summaryMonths.map((key) => (
-                      <tr key={key}>
-                        <td style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{monthLabel(key)}</td>
-                        <td>{summary[key].total}</td>
-                        {CATEGORIES.map((c) => <td key={c}>{summary[key].byCategory[c] || 0}</td>)}
-                        <td>{summary[key].byRole.Faculty || 0}</td>
-                        <td>{summary[key].byRole.Student || 0}</td>
-                      </tr>
+                      <React.Fragment key={key}>
+                        <tr className="summary-count-row">
+                          <td style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{monthLabel(key)}</td>
+                          <td>{summary[key].total}</td>
+                          {CATEGORIES.map((c) => <td key={c}>{summary[key].byCategory[c] || 0}</td>)}
+                          <td>{summary[key].byRole.Faculty || 0}</td>
+                          <td>{summary[key].byRole.Student || 0}</td>
+                          <td colSpan="7" style={{ color: "#8A8778", fontStyle: "italic" }}>Monthly count</td>
+                        </tr>
+                        {summary[key].records.map((r) => {
+                          const cat = CATEGORY_STYLES[r.category] || CATEGORY_STYLES.Other;
+                          const role = ROLE_STYLES[r.role] || ROLE_STYLES.Faculty;
+                          return (
+                            <tr key={r.id}>
+                              <td colSpan="7" />
+                              <td><span className="pill" style={{ background: role.bg, color: role.text }}>{r.role}</span></td>
+                              <td>{r.name}</td>
+                              <td className="td-id">{r.idNumber}</td>
+                              <td>
+                                <span className="pill" style={{ background: cat.bg, color: cat.text }}>
+                                  <span className="pill-dot" style={{ background: cat.dot }} /> {r.category}
+                                </span>
+                              </td>
+                              <td><span className="td-details" title={r.details}>{r.details}</span></td>
+                              <td style={{ whiteSpace: "nowrap" }}>{formatDate(r.date)}</td>
+                              <td>
+                                {r.proofLink ? (
+                                  <a href={r.proofLink} target="_blank" rel="noopener noreferrer" className="proof-link"><Icon.link /> Open</a>
+                                ) : <span style={{ color: "#C7C4B6" }}>—</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
