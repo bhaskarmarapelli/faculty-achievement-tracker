@@ -149,7 +149,7 @@ function SubmitForm({ db, showToast }) {
       </div>
 
       <p className="form-intro">
-        Record an academic, co-curricular, extra-curricular, or other achievement for department review.
+        Record an academic,research, co-curricular, extra-curricular, or other achievement for department review.
         Fields marked with <span className="required">*</span> are required.
       </p>
       <form onSubmit={handleSubmit} noValidate>
@@ -162,7 +162,7 @@ function SubmitForm({ db, showToast }) {
           <Field label={idLabel} required error={errors.idNumber}>
             <input className={"field-input" + (errors.idNumber ? " error" : "")} value={form.idNumber}
               onChange={(e) => setForm({ ...form, idNumber: e.target.value })}
-              placeholder={form.role === "Faculty" ? "e.g. 7367" : "e.g. 2200030123"} />
+              placeholder={form.role === "Faculty" ? "e.g. 7367" : "e.g. 2300090123"} />
           </Field>
         </div>
 
